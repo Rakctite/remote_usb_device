@@ -1,0 +1,9 @@
+.worktrees/
+
+# Local build and test output
+artifacts/
+bin/
+obj/
+.pytest_cache/
+__pycache__/
+*.pyc
