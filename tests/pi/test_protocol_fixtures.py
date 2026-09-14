@@ -1,4 +1,5 @@
 import importlib
+import inspect
 import json
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,9 @@ def test_fixture_schema_and_literal_hex_are_valid() -> None:
     assert constants["header_length"] == 20
     assert constants["tag_length"] == 16
     assert constants["maximum_payload_length"] == 4096
+    assert constants["magic"] == "4e484944"
+    assert constants["version"] == "01"
+    assert constants["flags"] == "0000"
     for name in ("psk", "client_nonce", "server_nonce", "server_proof", "client_proof", "session_key"):
         assert_lowercase_hex(constants[name], 32)
 
@@ -67,17 +71,19 @@ def test_fixture_headers_encode_declared_fields() -> None:
     for vector in vectors:
         header = bytes.fromhex(vector["header"])
         payload = bytes.fromhex(vector["payload"])
-        assert header[0:4] == b"NHID"
-        assert header[4] == 1
-        assert header[5] == int(vector["type"], 16)
-        assert int.from_bytes(header[6:8], "big") == 0
-        assert int.from_bytes(header[8:16], "big") == vector["sequence"]
-        assert int.from_bytes(header[16:20], "big") == len(payload)
+        name = vector["name"]
+        assert header[0:4] == b"NHID", f"{name}: magic"
+        assert header[4] == 1, f"{name}: version"
+        assert header[5] == int(vector["type"], 16), f"{name}: message type"
+        assert int.from_bytes(header[6:8], "big") == 0, f"{name}: flags"
+        assert int.from_bytes(header[8:16], "big") == vector["sequence"], f"{name}: sequence"
+        assert int.from_bytes(header[16:20], "big") == len(payload), f"{name}: payload length"
 
 
 def test_fixture_payload_layouts_and_invalid_cases_are_unambiguous() -> None:
     fixture = load_fixture()
-    messages = {vector["name"]: bytes.fromhex(vector["payload"]) for vector in fixture["messages"]}
+    message_vectors = {vector["name"]: vector for vector in fixture["messages"]}
+    messages = {name: bytes.fromhex(vector["payload"]) for name, vector in message_vectors.items()}
     mouse = messages["mouse_state"]
     full = messages["full_state"]
 
@@ -97,20 +103,87 @@ def test_fixture_payload_layouts_and_invalid_cases_are_unambiguous() -> None:
     invalid_tag = authenticated["invalid_tag"]
     invalid_sequence = authenticated["invalid_sequence"]
     oversize = authenticated["oversize"]
-    assert invalid_tag["header"] == valid["header"]
-    assert invalid_tag["payload"] == valid["payload"]
-    assert invalid_tag["tag"] != valid["tag"]
+    handshake = {vector["name"]: vector for vector in fixture["handshake"]}
+    constants = fixture["constants"]
+    assert handshake["client_hello"]["payload"] == constants["client_nonce"], "client_hello.payload"
+    assert handshake["server_hello"]["payload"] == constants["server_nonce"] + constants["server_proof"], (
+        "server_hello.payload"
+    )
+    assert handshake["client_auth"]["payload"] == constants["client_proof"], "client_auth.payload"
+
+    referenced_message = message_vectors[valid["message"]]
+    assert valid["header"] == referenced_message["header"], "authenticated_frames.valid.header"
+    assert valid["payload"] == referenced_message["payload"], "authenticated_frames.valid.payload"
+    assert valid["tag"] == "4f8aa829f97fc236254a3d176abc6c63", "authenticated_frames.valid.tag"
+    assert valid["frame"] == valid["header"] + valid["payload"] + valid["tag"], (
+        "authenticated_frames.valid.frame"
+    )
+    assert invalid_tag["expected_error"] == "authentication", "authenticated_frames.invalid_tag.expected_error"
+    assert invalid_tag["message"] == valid["message"], "authenticated_frames.invalid_tag.message"
+    assert invalid_tag["header"] == valid["header"], "authenticated_frames.invalid_tag.header"
+    assert invalid_tag["payload"] == valid["payload"], "authenticated_frames.invalid_tag.payload"
+    assert invalid_tag["tag"] == "0f8aa829f97fc236254a3d176abc6c63", "authenticated_frames.invalid_tag.tag"
+    assert bytes.fromhex(invalid_tag["frame"])[:-16] == bytes.fromhex(valid["frame"])[:-16], (
+        "authenticated_frames.invalid_tag.frame body"
+    )
+    assert bytes.fromhex(invalid_tag["frame"])[-16:] != bytes.fromhex(valid["frame"])[-16:], (
+        "authenticated_frames.invalid_tag.frame tag"
+    )
     assert int.from_bytes(bytes.fromhex(valid["header"])[8:16], "big") == 1
+    assert invalid_sequence["expected_error"] == "sequence", "authenticated_frames.invalid_sequence.expected_error"
+    assert invalid_sequence["message"] == valid["message"], "authenticated_frames.invalid_sequence.message"
     assert invalid_sequence["expected_sequence"] == 2
     assert invalid_sequence["actual_sequence"] == 3
-    assert int.from_bytes(bytes.fromhex(invalid_sequence["header"])[8:16], "big") == 3
-    declared_oversize = int.from_bytes(bytes.fromhex(oversize["header"])[16:20], "big")
-    assert declared_oversize == oversize["declared_payload_length"] == 4097
-    assert declared_oversize > fixture["constants"]["maximum_payload_length"]
+    valid_header = bytes.fromhex(valid["header"])
+    invalid_sequence_header = bytes.fromhex(invalid_sequence["header"])
+    assert invalid_sequence_header[:8] == valid_header[:8], "authenticated_frames.invalid_sequence.header prefix"
+    assert invalid_sequence_header[16:] == valid_header[16:], "authenticated_frames.invalid_sequence.header length"
+    assert int.from_bytes(invalid_sequence_header[8:16], "big") == 3
+    assert invalid_sequence["payload"] == valid["payload"], "authenticated_frames.invalid_sequence.payload"
+    assert invalid_sequence["tag"] == "b8042bd2e9aa2886ae840a83476687e2", (
+        "authenticated_frames.invalid_sequence.tag"
+    )
+    oversize_header = bytes.fromhex(oversize["header"])
+    assert oversize["expected_error"] == "payload-too-large", "authenticated_frames.oversize.expected_error"
+    assert oversize["message"] == valid["message"], "authenticated_frames.oversize.message"
+    assert oversize_header[:8] == valid_header[:8], "authenticated_frames.oversize.header prefix"
+    assert int.from_bytes(oversize_header[8:16], "big") == 2, "authenticated_frames.oversize.header sequence"
+    declared_oversize = int.from_bytes(oversize_header[16:20], "big")
+    assert declared_oversize == oversize["declared_payload_length"], "authenticated_frames.oversize.header length"
+    assert declared_oversize == constants["maximum_payload_length"] + 1, (
+        "authenticated_frames.oversize.declared_payload_length"
+    )
 
 
-def test_python_protocol_api_consumes_shared_vectors() -> None:
+def test_python_frame_codec_decode_authenticated_consumes_shared_vector() -> None:
     fixture = load_fixture()
-    protocol = importlib.import_module("network_hid_bridge.protocol")
+    try:
+        protocol = importlib.import_module("network_hid_bridge.protocol")
+    except ModuleNotFoundError as error:
+        raise AssertionError(
+            "Missing planned API network_hid_bridge.protocol.FrameCodec.decode_authenticated"
+        ) from error
+    assert hasattr(protocol, "FrameCodec"), (
+        "Missing planned API network_hid_bridge.protocol.FrameCodec.decode_authenticated"
+    )
+    descriptor = vars(protocol.FrameCodec).get("decode_authenticated")
+    assert isinstance(descriptor, staticmethod), (
+        "FrameCodec.decode_authenticated must be a static method"
+    )
+    decoder = descriptor.__func__
+    signature = inspect.signature(decoder)
+    assert list(signature.parameters) == ["encoded", "session_key", "expected_sequence"], (
+        "FrameCodec.decode_authenticated must accept exactly encoded, session_key, expected_sequence"
+    )
+    assert all(
+        parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+        for parameter in signature.parameters.values()
+    ), "FrameCodec.decode_authenticated parameters must be positional or keyword"
+    valid = fixture["authenticated_frames"]["valid"]
 
-    assert protocol.Frame.from_bytes(bytes.fromhex(fixture["authenticated_frames"]["valid"]["frame"]))
+    frame = decoder(
+        encoded=bytes.fromhex(valid["frame"]),
+        session_key=bytes.fromhex(fixture["constants"]["session_key"]),
+        expected_sequence=1,
+    )
+    assert isinstance(frame, protocol.Frame), "FrameCodec.decode_authenticated must return Frame"

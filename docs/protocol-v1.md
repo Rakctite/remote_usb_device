@@ -44,7 +44,9 @@ No message types other than those in this table are defined in v1. Handshake typ
 
 ## Handshake and key derivation
 
-The PSK is a configured byte string shared by exactly the Windows client and Pi receiver. It is not transmitted. Nonces MUST be independently generated, unpredictable 32-byte values for every connection and MUST NOT be reused intentionally.
+The PSK MUST be exactly 32 cryptographically random bytes shared by exactly the Windows client and Pi receiver. It MUST NOT be a password, passphrase, human-memorable string, or a padded/truncated encoding of one, and it is not transmitted. Random nonces prevent session-key reuse but do not prevent offline guessing when a weak PSK is used. Configuration and UI layers MUST preserve the 32-byte binary key exactly; a text transport representation for entering or storing those bytes is defined by the settings layer, not by protocol v1.
+
+Nonces MUST be independently generated, unpredictable 32-byte values for every connection and MUST NOT be reused intentionally.
 
 The only valid handshake transcript is:
 
@@ -62,6 +64,8 @@ session_key  = HMAC-SHA256(PSK, ASCII("session") || client_nonce || server_nonce
 ```
 
 `||` means byte concatenation. The nonce order is always client nonce followed by server nonce. Proof comparisons MUST be constant-time. A bad proof, wrong handshake order, wrong handshake payload size, nonzero handshake sequence, or tagged handshake frame terminates the connection. No HID message may be acted upon before the handshake completes.
+
+The fixture-facing production decode APIs are part of this contract. Python exposes `FrameCodec.decode_authenticated(encoded: bytes, session_key: bytes, expected_sequence: int) -> Frame` from `network_hid_bridge.protocol`. C# exposes `public static Frame FrameCodec.DecodeAuthenticated(byte[] encoded, byte[] sessionKey, ulong expectedSequence)` from `NetworkHidBridge.Core.Protocol`. Implementations may add internal span-based overloads, but these exact public call shapes remain available for cross-language fixture tests.
 
 ## Authenticated frames and sequencing
 
