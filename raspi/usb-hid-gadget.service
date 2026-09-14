@@ -1,0 +1,13 @@
+[Unit]
+Description=USB HID gadget (keyboard + mouse + consumer)
+After=local-fs.target systemd-modules-load.service
+Before=network-hid-bridge.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/usb-hid-gadget start
+ExecStop=/usr/local/sbin/usb-hid-gadget stop
+
+[Install]
+WantedBy=multi-user.target
