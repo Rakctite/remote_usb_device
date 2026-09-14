@@ -146,10 +146,32 @@ def test_fragmented_reads_and_concatenated_frames() -> None:
     )
 
 
-@pytest.mark.parametrize("wire", [b"NHI", header(0x10, 1, 8) + b"123", header(0x10, 1, 8) + b"12345678short"])
+@pytest.mark.parametrize(
+    "wire",
+    [b"", b"NHI", header(0x10, 1, 8) + b"123", header(0x10, 1, 8) + b"12345678short"],
+)
 def test_async_read_rejects_eof_and_truncation(wire: bytes) -> None:
     with pytest.raises(ProtocolError, match="truncated"):
         asyncio.run(FrameCodec.read_authenticated(ChunkReader([wire]), KEY, SequenceTracker()))
+
+
+@pytest.mark.parametrize(
+    "invalid_header",
+    [
+        pytest.param(header(0x10, 1, 8, magic=b"FAIL"), id="bad-magic"),
+        pytest.param(header(0x10, 1, 8, version=2), id="bad-version"),
+        pytest.param(header(0x10, 1, 8, flags=1), id="nonzero-flags"),
+        pytest.param(header(0x7F, 1, 8), id="unknown-type"),
+        pytest.param(header(MessageType.CLIENT_HELLO, 0, 32), id="handshake-type"),
+    ],
+)
+def test_async_read_rejects_invalid_header_before_payload_read(invalid_header: bytes) -> None:
+    reader = ChunkReader([invalid_header, b"payload and tag must not be read"])
+
+    with pytest.raises(ProtocolError):
+        asyncio.run(FrameCodec.read_authenticated(reader, KEY, SequenceTracker()))
+
+    assert reader.requests == [20]
 
 
 def test_oversize_is_rejected_before_payload_read() -> None:
