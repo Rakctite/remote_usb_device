@@ -7,9 +7,11 @@ This repository contains the early skeleton for two cooperating components:
 
 The transport, input-routing, authentication, and USB HID behavior described in the design documents are not implemented yet.
 
-Run the current smoke tests from the repository root:
+Install the Python test tooling, then build and test the complete scaffold from the repository root:
 
 ```powershell
+python -m pip install -e ".[test]"
+dotnet build NetworkHidBridge.sln
 dotnet test NetworkHidBridge.sln
 python -m pytest tests/pi -q
 ```
