@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 FIXTURE_PATH = Path(__file__).parents[1] / "fixtures" / "protocol-v1.json"
 HEX_DIGITS = frozenset("0123456789abcdef")
@@ -187,3 +189,38 @@ def test_python_frame_codec_decode_authenticated_consumes_shared_vector() -> Non
         expected_sequence=1,
     )
     assert isinstance(frame, protocol.Frame), "FrameCodec.decode_authenticated must return Frame"
+
+
+def test_python_frame_codec_consumes_all_frozen_handshake_vectors() -> None:
+    fixture = load_fixture()
+    protocol = importlib.import_module("network_hid_bridge.protocol")
+
+    for vector in fixture["handshake"]:
+        encoded = bytes.fromhex(vector["frame"])
+        frame = protocol.FrameCodec.decode_handshake(encoded)
+        assert frame.message_type == protocol.MessageType(int(vector["type"], 16))
+        assert frame.sequence == vector["sequence"]
+        assert frame.payload == bytes.fromhex(vector["payload"])
+        assert protocol.FrameCodec.encode_handshake(frame) == encoded
+
+
+def test_python_frame_codec_rejects_frozen_invalid_authenticated_vectors() -> None:
+    fixture = load_fixture()
+    protocol = importlib.import_module("network_hid_bridge.protocol")
+    authenticated = fixture["authenticated_frames"]
+    session_key = bytes.fromhex(fixture["constants"]["session_key"])
+
+    with pytest.raises(protocol.ProtocolError, match="authentication"):
+        protocol.FrameCodec.decode_authenticated(
+            bytes.fromhex(authenticated["invalid_tag"]["frame"]), session_key, 1
+        )
+    with pytest.raises(protocol.ProtocolError, match="sequence"):
+        protocol.FrameCodec.decode_authenticated(
+            bytes.fromhex(authenticated["invalid_sequence"]["frame"]),
+            session_key,
+            authenticated["invalid_sequence"]["expected_sequence"],
+        )
+    with pytest.raises(protocol.ProtocolError, match="too large"):
+        protocol.FrameCodec.decode_authenticated(
+            bytes.fromhex(authenticated["oversize"]["header"]), session_key, 2
+        )
