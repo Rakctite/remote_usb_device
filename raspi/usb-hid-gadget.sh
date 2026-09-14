@@ -7,7 +7,7 @@ GADGET="$GADGET_ROOT/$GADGET_NAME"
 
 unbind_gadget() {
     if [[ -e "$GADGET/UDC" ]]; then
-        printf '%s' '' > "$GADGET/UDC" || true
+        printf '\n' > "$GADGET/UDC" || true
     fi
 }
 
@@ -55,8 +55,8 @@ fi
 UDC_NAME=${UDC_NAMES[0]}
 
 remove_gadget
-mkdir -p "$GADGET"
 trap 'remove_gadget' EXIT
+mkdir -p "$GADGET"
 
 printf '%s' '0x1d6b' > "$GADGET/idVendor"
 printf '%s' '0x0104' > "$GADGET/idProduct"

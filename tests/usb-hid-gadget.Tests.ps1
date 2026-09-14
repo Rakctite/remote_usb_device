@@ -13,6 +13,13 @@ function Assert-Matches {
     if ($Text -notmatch $Pattern) { throw $Message }
 }
 
+function Get-RequiredIndex {
+    param([string]$Text, [string]$Needle, [string]$Message)
+    $index = $Text.IndexOf($Needle, [System.StringComparison]::Ordinal)
+    if ($index -lt 0) { throw $Message }
+    return $index
+}
+
 function Assert-Descriptor {
     param([string]$Script, [string]$FunctionName, [string]$ExpectedHex)
 
@@ -81,9 +88,34 @@ foreach ($link in @('01-keyboard', '02-mouse', '03-consumer')) {
 foreach ($function in @('keyboard', 'mouse', 'consumer')) {
     Assert-Contains $script "rmdir `"`$GADGET/functions/hid.$function`"" "Cleanup must remove hid.$function"
 }
-Assert-Matches $script '(?m)^\s*printf ''%s'' '''' > "\$GADGET/UDC"' 'Cleanup must unbind the UDC safely'
-Assert-Contains $script "trap 'remove_gadget' EXIT" 'A failed start must clean up the partially created or bound gadget'
-Assert-Contains $script 'trap - EXIT' 'A successful start must retain the bound gadget'
+Assert-Matches $script '(?m)^\s*printf ''\\n'' > "\$GADGET/UDC"' 'Cleanup must write a newline to the UDC attribute to trigger ConfigFS unbind'
+if ($script.Contains("printf '%s' '' > `"`$GADGET/UDC`"")) {
+    throw 'Cleanup must not use a zero-byte printf write for ConfigFS unbind'
+}
+
+$trapInstallIndex = Get-RequiredIndex $script "trap 'remove_gadget' EXIT" 'A failed start must clean up the partially created or bound gadget'
+$gadgetCreateIndex = Get-RequiredIndex $script 'mkdir -p "$GADGET"' 'Missing gadget directory creation'
+$descriptorIndex = Get-RequiredIndex $script 'functions/hid.keyboard/report_desc' 'Missing HID descriptor write'
+$bindIndex = Get-RequiredIndex $script 'printf ''%s'' "$UDC_NAME" > "$GADGET/UDC"' 'Missing UDC bind'
+$pollIndex = Get-RequiredIndex $script 'for ((attempt = 1; attempt <= max_attempts; attempt++))' 'Missing HID node poll'
+$chgrpIndex = Get-RequiredIndex $script 'chgrp hidbridge "$node"' 'Missing HID group assignment'
+$chmodIndex = Get-RequiredIndex $script 'chmod 0660 "$node"' 'Missing HID mode assignment'
+$trapClearIndex = Get-RequiredIndex $script 'trap - EXIT' 'A successful start must retain the bound gadget'
+
+foreach ($operation in @(
+    @{ Name = 'gadget creation'; Index = $gadgetCreateIndex },
+    @{ Name = 'descriptor write'; Index = $descriptorIndex },
+    @{ Name = 'UDC bind'; Index = $bindIndex },
+    @{ Name = 'HID node poll'; Index = $pollIndex }
+)) {
+    if ($trapInstallIndex -ge $operation.Index) {
+        throw "EXIT cleanup trap must be installed before $($operation.Name)"
+    }
+}
+if ($trapClearIndex -le $chgrpIndex -or $trapClearIndex -le $chmodIndex) {
+    throw 'EXIT cleanup trap must remain installed until all HID ownership and mode operations succeed'
+}
+Assert-Matches $script '(?s)for node in "\$\{expected_nodes\[@\]\}"; do\s+\[\[ -c "\$node" \]\] \|\| \{.*?\}\s+chgrp hidbridge "\$node"\s+chmod 0660 "\$node"\s+done\s+trap - EXIT' 'EXIT cleanup trap may only be cleared after the complete permission loop succeeds'
 Assert-Contains $script '/sys/class/udc' 'Script must discover UDCs from sysfs'
 Assert-Matches $script '(?s)mapfile -t UDC.*sort' 'UDC selection must be deterministic'
 Assert-Matches $script '(?s)(exactly one|More than one|multiple).*UDC' 'Multiple UDC behavior must be explicit'
