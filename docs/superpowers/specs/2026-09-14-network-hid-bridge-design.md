@@ -29,7 +29,7 @@ splitter may provide the same isolation without modifying a cable.
 
 ### Windows application
 
-The Windows component is a C# .NET 10 WPF tray application. It runs elevated
+The Windows component is a C# .NET 9 WPF tray application. It runs elevated
 and contains these independently testable components:
 
 - `InputCapture`: low-level keyboard hooks and Raw Input mouse collection
