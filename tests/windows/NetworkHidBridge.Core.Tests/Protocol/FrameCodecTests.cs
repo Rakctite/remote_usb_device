@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using NetworkHidBridge.Core.Protocol;
 
 namespace NetworkHidBridge.Core.Tests.Protocol;
@@ -77,16 +78,28 @@ public sealed class FrameCodecTests
     }
 
     [Fact]
-    public void AuthenticatedDecodeRejectsInvalidTagAndSequence()
+    public void AuthenticatedDecodeRejectsInvalidTag()
     {
         var valid = FrameCodec.EncodeAuthenticated(new Frame(MessageType.ReleaseAll, 1, []), Key);
         valid[^1] ^= 1;
         Assert.Contains("authentication", Assert.Throws<ProtocolException>(
             () => FrameCodec.DecodeAuthenticated(valid, Key, 1)).Message, StringComparison.OrdinalIgnoreCase);
+    }
 
-        var skipped = FrameCodec.EncodeAuthenticated(new Frame(MessageType.ReleaseAll, 3, []), Key);
-        Assert.Contains("sequence", Assert.Throws<ProtocolException>(
-            () => FrameCodec.DecodeAuthenticated(skipped, Key, 2)).Message, StringComparison.OrdinalIgnoreCase);
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(1UL)]
+    [InlineData(3UL)]
+    public async Task AuthenticatedReadRejectsReorderedRepeatedOrSkippedSequenceWithoutAdvancing(ulong actualSequence)
+    {
+        var tracker = new SequenceTracker(2);
+        var encoded = CorrectlyTaggedFrame(MessageType.ReleaseAll, actualSequence, []);
+
+        var exception = await Assert.ThrowsAsync<ProtocolException>(
+            () => FrameCodec.ReadAuthenticatedAsync(new MemoryStream(encoded), Key, tracker));
+
+        Assert.Contains("sequence", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2UL, tracker.ExpectedSequence);
     }
 
     [Theory]
@@ -250,6 +263,13 @@ public sealed class FrameCodecTests
         BinaryPrimitives.WriteUInt64BigEndian(result.AsSpan(8), sequence);
         BinaryPrimitives.WriteUInt32BigEndian(result.AsSpan(16), payloadLength);
         return result;
+    }
+
+    private static byte[] CorrectlyTaggedFrame(MessageType type, ulong sequence, byte[] payload)
+    {
+        var body = Header(type, sequence, checked((uint)payload.Length)).Concat(payload).ToArray();
+        var tag = HMACSHA256.HashData(Key, body).AsSpan(0, FrameCodec.TagLength).ToArray();
+        return body.Concat(tag).ToArray();
     }
 
     private static void AssertFrame(Frame expected, Frame actual)

@@ -259,6 +259,27 @@ public sealed class ProtocolFixtureTests
                 2));
     }
 
+    [Fact]
+    public void WindowsFrameCodecRoundTripsEverySharedHandshakeVector()
+    {
+        using var fixture = LoadFixture();
+
+        foreach (var vector in fixture.RootElement.GetProperty("handshake").EnumerateArray())
+        {
+            var expectedType = (NetworkHidBridge.Core.Protocol.MessageType)Convert.ToByte(
+                vector.GetProperty("type").GetString(), 16);
+            var expectedPayload = Convert.FromHexString(vector.GetProperty("payload").GetString()!);
+            var expectedWire = Convert.FromHexString(vector.GetProperty("frame").GetString()!);
+
+            var frame = NetworkHidBridge.Core.Protocol.FrameCodec.DecodeHandshake(expectedWire, expectedType);
+
+            Assert.Equal(expectedType, frame.MessageType);
+            Assert.Equal(0UL, frame.Sequence);
+            Assert.Equal(expectedPayload, frame.Payload.ToArray());
+            Assert.Equal(expectedWire, NetworkHidBridge.Core.Protocol.FrameCodec.EncodeHandshake(frame));
+        }
+    }
+
     private static JsonDocument LoadFixture()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
