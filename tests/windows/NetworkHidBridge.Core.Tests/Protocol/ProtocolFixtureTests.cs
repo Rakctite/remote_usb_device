@@ -230,6 +230,35 @@ public sealed class ProtocolFixtureTests
         Assert.IsType(decoder.ReturnType, decoder.Invoke(null, [frameBytes, sessionKey, 1UL]));
     }
 
+    [Fact]
+    public void WindowsFrameCodecMatchesSharedWireAndRejectsSharedInvalidVectors()
+    {
+        using var fixture = LoadFixture();
+        var root = fixture.RootElement;
+        var authenticated = root.GetProperty("authenticated_frames");
+        var valid = authenticated.GetProperty("valid");
+        var sessionKey = Convert.FromHexString(root.GetProperty("constants").GetProperty("session_key").GetString()!);
+        var validBytes = Convert.FromHexString(valid.GetProperty("frame").GetString()!);
+        var frame = NetworkHidBridge.Core.Protocol.FrameCodec.DecodeAuthenticated(validBytes, sessionKey, 1);
+
+        Assert.Equal(validBytes, NetworkHidBridge.Core.Protocol.FrameCodec.EncodeAuthenticated(frame, sessionKey));
+        Assert.Throws<NetworkHidBridge.Core.Protocol.ProtocolException>(() =>
+            NetworkHidBridge.Core.Protocol.FrameCodec.DecodeAuthenticated(
+                Convert.FromHexString(authenticated.GetProperty("invalid_tag").GetProperty("frame").GetString()!),
+                sessionKey,
+                1));
+        Assert.Throws<NetworkHidBridge.Core.Protocol.ProtocolException>(() =>
+            NetworkHidBridge.Core.Protocol.FrameCodec.DecodeAuthenticated(
+                Convert.FromHexString(authenticated.GetProperty("invalid_sequence").GetProperty("frame").GetString()!),
+                sessionKey,
+                authenticated.GetProperty("invalid_sequence").GetProperty("expected_sequence").GetUInt64()));
+        Assert.Throws<NetworkHidBridge.Core.Protocol.ProtocolException>(() =>
+            NetworkHidBridge.Core.Protocol.FrameCodec.DecodeAuthenticated(
+                Convert.FromHexString(authenticated.GetProperty("oversize").GetProperty("header").GetString()!),
+                sessionKey,
+                2));
+    }
+
     private static JsonDocument LoadFixture()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
