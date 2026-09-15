@@ -44,18 +44,34 @@ public sealed class MouseAccumulator
 
     public MouseSnapshot Drain() => new(
         (byte)Volatile.Read(ref _buttons),
-        DrainInt32(ref _deltaX),
-        DrainInt32(ref _deltaY),
-        DrainInt32(ref _wheel),
-        DrainInt32(ref _pan));
+        DrainBounded(ref _deltaX, int.MinValue, int.MaxValue),
+        DrainBounded(ref _deltaY, int.MinValue, int.MaxValue),
+        DrainBounded(ref _wheel, int.MinValue, int.MaxValue),
+        DrainBounded(ref _pan, int.MinValue, int.MaxValue));
 
-    private static int DrainInt32(ref long accumulator)
+    public MouseSnapshot DrainForProtocol() => new(
+        (byte)Volatile.Read(ref _buttons),
+        DrainBounded(ref _deltaX, int.MinValue, int.MaxValue),
+        DrainBounded(ref _deltaY, int.MinValue, int.MaxValue),
+        DrainBounded(ref _wheel, short.MinValue, short.MaxValue),
+        DrainBounded(ref _pan, short.MinValue, short.MaxValue));
+
+    public void Clear()
+    {
+        Interlocked.Exchange(ref _deltaX, 0);
+        Interlocked.Exchange(ref _deltaY, 0);
+        Interlocked.Exchange(ref _wheel, 0);
+        Interlocked.Exchange(ref _pan, 0);
+        Interlocked.Exchange(ref _buttons, 0);
+    }
+
+    private static int DrainBounded(ref long accumulator, int minimum, int maximum)
     {
         long value = Interlocked.Exchange(ref accumulator, 0);
         int delivered = value switch
         {
-            > int.MaxValue => int.MaxValue,
-            < int.MinValue => int.MinValue,
+            > 0 when value > maximum => maximum,
+            < 0 when value < minimum => minimum,
             _ => (int)value,
         };
 

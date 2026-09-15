@@ -44,4 +44,32 @@ public sealed class MouseAccumulatorTests
         Assert.NotEqual(0, second.DeltaX);
         Assert.NotEqual(0, second.DeltaY);
     }
+
+    [Fact]
+    public void ClearRemovesButtonsAndEveryAccumulatedDelta()
+    {
+        var accumulator = new MouseAccumulator();
+        accumulator.SetButton(3, true);
+        accumulator.AddMovement(10, -20);
+        accumulator.AddWheel(120, -120);
+
+        accumulator.Clear();
+
+        Assert.Equal(new MouseSnapshot(0, 0, 0, 0, 0), accumulator.Drain());
+    }
+
+    [Fact]
+    public void ProtocolDrainSplitsWheelValuesWithoutDiscardingRemainder()
+    {
+        var accumulator = new MouseAccumulator();
+        accumulator.AddWheel(40_000, -40_000);
+
+        MouseSnapshot first = accumulator.DrainForProtocol();
+        MouseSnapshot second = accumulator.DrainForProtocol();
+
+        Assert.Equal(short.MaxValue, first.Wheel);
+        Assert.Equal(short.MinValue, first.Pan);
+        Assert.Equal(40_000, first.Wheel + second.Wheel);
+        Assert.Equal(-40_000, first.Pan + second.Pan);
+    }
 }
