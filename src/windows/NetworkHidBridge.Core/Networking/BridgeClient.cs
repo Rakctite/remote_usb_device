@@ -195,8 +195,8 @@ public sealed class BridgeClient
             {
                 return;
             }
+            _mouse.AddMovement(deltaX, deltaY);
         }
-        _mouse.AddMovement(deltaX, deltaY);
     }
 
     public void AddMouseWheel(long wheel, long pan)
@@ -207,8 +207,8 @@ public sealed class BridgeClient
             {
                 return;
             }
+            _mouse.AddWheel(wheel, pan);
         }
-        _mouse.AddWheel(wheel, pan);
     }
 
     public void SetMouseButton(int button, bool isDown)
@@ -219,8 +219,8 @@ public sealed class BridgeClient
             {
                 return;
             }
+            _mouse.SetButton(button, isDown);
         }
-        _mouse.SetButton(button, isDown);
     }
 
     private async Task<bool> ConnectOnceCoreAsync(CancellationToken cancellationToken)

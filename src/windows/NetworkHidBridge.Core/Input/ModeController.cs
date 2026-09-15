@@ -7,79 +7,109 @@ public sealed class ModeController
     public const uint VirtualKeyMultiply = 0x6A;
     public const uint VirtualKeySubtract = 0x6D;
 
+    private readonly object _sync = new();
     private bool _multiplyDown;
     private bool _subtractDown;
     private bool _hotkeyLatched;
+    private RoutingMode _mode = RoutingMode.Default;
+    private bool _isAuthenticated;
 
-    public RoutingMode Mode { get; private set; } = RoutingMode.Default;
+    public RoutingMode Mode
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _mode;
+            }
+        }
+    }
 
-    public bool IsAuthenticated { get; private set; }
+    public bool IsAuthenticated
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _isAuthenticated;
+            }
+        }
+    }
 
     public event EventHandler<RoutingMode>? ModeChanged;
 
     public void SetAuthenticated(bool authenticated)
     {
-        IsAuthenticated = authenticated;
-        if (!authenticated)
+        lock (_sync)
         {
-            SetModeCore(RoutingMode.Default);
+            _isAuthenticated = authenticated;
+            if (!authenticated)
+            {
+                SetModeCore(RoutingMode.Default);
+            }
         }
     }
 
     public bool TrySetMode(RoutingMode mode)
     {
         _ = mode.GetPolicy();
-        if (mode.GetPolicy().AllowRemote && !IsAuthenticated)
+        lock (_sync)
         {
-            return false;
-        }
+            if (mode.GetPolicy().AllowRemote && !_isAuthenticated)
+            {
+                return false;
+            }
 
-        SetModeCore(mode);
-        return true;
+            SetModeCore(mode);
+            return true;
+        }
     }
 
     public HotkeyResult HandleReservedKey(uint virtualKey, bool isDown)
     {
-        if (virtualKey is not (VirtualKeyMultiply or VirtualKeySubtract))
+        lock (_sync)
         {
-            return new(false, false, Mode);
-        }
+            if (virtualKey is not (VirtualKeyMultiply or VirtualKeySubtract))
+            {
+                return new(false, false, _mode);
+            }
 
-        if (virtualKey == VirtualKeyMultiply)
-        {
-            _multiplyDown = isDown;
-        }
-        else
-        {
-            _subtractDown = isDown;
-        }
+            if (virtualKey == VirtualKeyMultiply)
+            {
+                _multiplyDown = isDown;
+            }
+            else
+            {
+                _subtractDown = isDown;
+            }
 
-        bool chordDown = _multiplyDown && _subtractDown;
-        bool changed = false;
-        if (chordDown && !_hotkeyLatched)
-        {
-            RoutingMode requested = Mode == RoutingMode.Default
-                ? RoutingMode.RemoteOnly
-                : RoutingMode.Default;
-            changed = TrySetMode(requested);
-            _hotkeyLatched = true;
-        }
-        else if (!chordDown)
-        {
-            _hotkeyLatched = false;
-        }
+            bool chordDown = _multiplyDown && _subtractDown;
+            bool changed = false;
+            if (chordDown && !_hotkeyLatched)
+            {
+                RoutingMode requested = _mode == RoutingMode.Default
+                    ? RoutingMode.RemoteOnly
+                    : RoutingMode.Default;
+                changed = TrySetMode(requested);
+                _hotkeyLatched = true;
+            }
+            else if (!chordDown)
+            {
+                _hotkeyLatched = false;
+            }
 
-        return new(true, changed, Mode);
+            return new(true, changed, _mode);
+        }
     }
 
     private void SetModeCore(RoutingMode mode)
     {
-        if (Mode == mode)
+        if (_mode == mode)
         {
             return;
         }
 
-        Mode = mode;
+        _mode = mode;
         ModeChanged?.Invoke(this, mode);
     }
 }

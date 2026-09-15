@@ -4,6 +4,23 @@ namespace NetworkHidBridge.Core.Tests.Input;
 
 public sealed class ModeControllerTests
 {
+    [Fact]
+    public void ConcurrentDisconnectAndRemoteRequestNeverLeaveUnauthenticatedRemoteMode()
+    {
+        var controller = new ModeController();
+
+        for (int iteration = 0; iteration < 10_000; iteration++)
+        {
+            controller.SetAuthenticated(true);
+            Parallel.Invoke(
+                () => controller.TrySetMode(RoutingMode.RemoteOnly),
+                () => controller.SetAuthenticated(false));
+
+            Assert.False(controller.IsAuthenticated);
+            Assert.Equal(RoutingMode.Default, controller.Mode);
+        }
+    }
+
     [Theory]
     [InlineData(RoutingMode.Default, true, false)]
     [InlineData(RoutingMode.RemoteOnly, false, true)]

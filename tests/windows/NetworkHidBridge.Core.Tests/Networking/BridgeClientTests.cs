@@ -12,6 +12,13 @@ public sealed class BridgeClientTests
     private static readonly byte[] Psk = Enumerable.Range(1, 32).Select(static value => (byte)value).ToArray();
     private static readonly byte[] ServerNonce = Enumerable.Range(101, 32).Select(static value => (byte)value).ToArray();
 
+    [Fact]
+    public void OptionsRejectListenerOnlyPortZero()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => new BridgeClientOptions(IPAddress.Loopback, 0, Psk));
+    }
+
     [Theory]
     [InlineData(0, 250)]
     [InlineData(1, 500)]

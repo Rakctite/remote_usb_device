@@ -55,8 +55,8 @@ internal sealed class InputCaptureService : IDisposable
     {
         if (_started)
         {
-            _modeController.ModeChanged -= HandleModeChanged;
             _modeController.TrySetMode(RoutingMode.Default);
+            _modeController.ModeChanged -= HandleModeChanged;
         }
         _mouseHook.Dispose();
         _keyboardHook.Dispose();

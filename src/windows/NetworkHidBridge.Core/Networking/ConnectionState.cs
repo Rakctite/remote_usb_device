@@ -26,7 +26,7 @@ public sealed class BridgeClientOptions
     {
         ArgumentNullException.ThrowIfNull(address);
         ArgumentNullException.ThrowIfNull(psk);
-        if (port is < IPEndPoint.MinPort or > IPEndPoint.MaxPort)
+        if (port is < 1 or > IPEndPoint.MaxPort)
         {
             throw new ArgumentOutOfRangeException(nameof(port));
         }
