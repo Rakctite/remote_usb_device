@@ -47,7 +47,13 @@ def test_installer_creates_locked_down_account_source_and_atomic_config() -> Non
     assert "chown root:hidbridge" in installer
     assert 'mv -f "$CONFIG_TEMP" "$CONFIG_PATH"' in installer
     assert "systemctl daemon-reload" in installer
-    assert "systemctl enable --now usb-hid-gadget.service network-hid-bridge.service" in installer
+    assert "systemctl enable usb-hid-gadget.service network-hid-bridge.service" in installer
+    assert "systemctl stop network-hid-bridge.service" in installer
+    assert "systemctl restart usb-hid-gadget.service" in installer
+    assert "systemctl start network-hid-bridge.service" in installer
+    assert installer.index("systemctl restart usb-hid-gadget.service") < installer.index(
+        "systemctl start network-hid-bridge.service"
+    )
 
 
 def test_installer_accepts_explicit_values_and_hides_interactive_psk() -> None:

@@ -127,5 +127,8 @@ install -m 0644 -o root -g root "$PROJECT_ROOT/raspi/usb-hid-gadget.service" /et
 install -m 0644 -o root -g root "$PROJECT_ROOT/raspi/network-hid-bridge.service" /etc/systemd/system/network-hid-bridge.service
 
 systemctl daemon-reload
-systemctl enable --now usb-hid-gadget.service network-hid-bridge.service
+systemctl enable usb-hid-gadget.service network-hid-bridge.service
+systemctl stop network-hid-bridge.service 2>/dev/null || true
+systemctl restart usb-hid-gadget.service
+systemctl start network-hid-bridge.service
 echo "Network HID Bridge installed for $LISTEN_ADDRESS:$PORT."
