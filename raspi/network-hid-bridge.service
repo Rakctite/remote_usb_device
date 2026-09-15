@@ -1,0 +1,27 @@
+[Unit]
+Description=Authenticated network to USB HID receiver
+Requires=usb-hid-gadget.service
+After=usb-hid-gadget.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hidbridge
+Group=hidbridge
+WorkingDirectory=/opt/network-hid-bridge
+Environment=PYTHONPATH=/opt/network-hid-bridge
+ExecStartPre=/usr/bin/test -c /dev/hidg0
+ExecStartPre=/usr/bin/test -c /dev/hidg1
+ExecStartPre=/usr/bin/test -c /dev/hidg2
+ExecStart=/usr/bin/python3 -m network_hid_bridge --config /etc/network-hid-bridge/config.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/dev/hidg0 /dev/hidg1 /dev/hidg2
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
