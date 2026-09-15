@@ -61,13 +61,14 @@ $consumerHex = @'
 Assert-Descriptor $script 'keyboard' $keyboardHex
 Assert-Descriptor $script 'mouse' $mouseHex
 Assert-Descriptor $script 'consumer' $consumerHex
+Assert-Contains $script "printf '%s' '0x0101' > `"`$GADGET/bcdDevice`"" 'USB device revision must change when the composite descriptor layout changes'
 
 foreach ($expected in @(
     "printf '%s' '1' > `"`$GADGET/functions/hid.keyboard/protocol`"",
     "printf '%s' '1' > `"`$GADGET/functions/hid.keyboard/subclass`"",
     "printf '%s' '8' > `"`$GADGET/functions/hid.keyboard/report_length`"",
-    "printf '%s' '2' > `"`$GADGET/functions/hid.mouse/protocol`"",
-    "printf '%s' '1' > `"`$GADGET/functions/hid.mouse/subclass`"",
+    "printf '%s' '0' > `"`$GADGET/functions/hid.mouse/protocol`"",
+    "printf '%s' '0' > `"`$GADGET/functions/hid.mouse/subclass`"",
     "printf '%s' '5' > `"`$GADGET/functions/hid.mouse/report_length`"",
     "printf '%s' '0' > `"`$GADGET/functions/hid.consumer/protocol`"",
     "printf '%s' '0' > `"`$GADGET/functions/hid.consumer/subclass`"",

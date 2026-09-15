@@ -60,7 +60,7 @@ mkdir -p "$GADGET"
 
 printf '%s' '0x1d6b' > "$GADGET/idVendor"
 printf '%s' '0x0104' > "$GADGET/idProduct"
-printf '%s' '0x0100' > "$GADGET/bcdDevice"
+printf '%s' '0x0101' > "$GADGET/bcdDevice"
 printf '%s' '0x0200' > "$GADGET/bcdUSB"
 printf '%s' '0x00' > "$GADGET/bDeviceClass"
 printf '%s' '0x00' > "$GADGET/bDeviceSubClass"
@@ -84,10 +84,12 @@ printf '%s' '1' > "$GADGET/functions/hid.keyboard/subclass"
 printf '%s' '8' > "$GADGET/functions/hid.keyboard/report_length"
 printf '%b' '\x05\x01\x09\x06\xA1\x01\x05\x07\x19\xE0\x29\xE7\x15\x00\x25\x01\x75\x01\x95\x08\x81\x02\x95\x01\x75\x08\x81\x01\x95\x06\x75\x08\x15\x00\x26\xA4\x00\x05\x07\x19\x00\x2A\xA4\x00\x81\x00\x95\x05\x75\x01\x05\x08\x19\x01\x29\x05\x91\x02\x95\x01\x75\x03\x91\x01\xC0' > "$GADGET/functions/hid.keyboard/report_desc"
 
-# Boot mouse: five buttons, X/Y, vertical wheel, and Consumer Page AC Pan.
+# Report-protocol mouse: five buttons, X/Y, vertical wheel, and Consumer Page AC Pan.
+# This five-byte report is not the three-byte Boot mouse format, so it must not
+# advertise the HID Boot subclass/protocol pair.
 mkdir -p "$GADGET/functions/hid.mouse"
-printf '%s' '2' > "$GADGET/functions/hid.mouse/protocol"
-printf '%s' '1' > "$GADGET/functions/hid.mouse/subclass"
+printf '%s' '0' > "$GADGET/functions/hid.mouse/protocol"
+printf '%s' '0' > "$GADGET/functions/hid.mouse/subclass"
 printf '%s' '5' > "$GADGET/functions/hid.mouse/report_length"
 printf '%b' '\x05\x01\x09\x02\xA1\x01\x09\x01\xA1\x00\x05\x09\x19\x01\x29\x05\x15\x00\x25\x01\x95\x05\x75\x01\x81\x02\x95\x01\x75\x03\x81\x01\x05\x01\x09\x30\x09\x31\x09\x38\x15\x81\x25\x7F\x75\x08\x95\x03\x81\x06\x05\x0C\x0A\x38\x02\x15\x81\x25\x7F\x75\x08\x95\x01\x81\x06\xC0\xC0' > "$GADGET/functions/hid.mouse/report_desc"
 
