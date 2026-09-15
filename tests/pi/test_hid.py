@@ -28,12 +28,12 @@ def test_writes_fixed_keyboard_mouse_and_consumer_reports(
     output.close(release=False)
 
     assert keyboard_path.read_bytes() == bytes.fromhex("0200040000000000")
-    assert mouse_path.read_bytes() == bytes((0x05, 12, 249, 1, 255))
-    assert consumer_path.read_bytes() == bytes.fromhex("e900")
+    assert mouse_path.read_bytes() == bytes((0x05, 12, 249, 1))
+    assert consumer_path.read_bytes() == bytes.fromhex("0000ffe90000")
 
 
 @pytest.mark.parametrize("value", [300, -300, 32767, -32768])
-@pytest.mark.parametrize("axis_offset", [1, 2, 3, 4])
+@pytest.mark.parametrize("axis_offset", [1, 2, 3])
 def test_large_relative_values_are_split_without_losing_motion(
     hid_paths: tuple[Path, Path, Path], value: int, axis_offset: int
 ) -> None:
@@ -46,7 +46,7 @@ def test_large_relative_values_are_split_without_losing_motion(
     output.write_mouse(0x03, *axes)
     output.close(release=False)
 
-    reports = _reports(mouse_path.read_bytes(), 5)
+    reports = _reports(mouse_path.read_bytes(), 4)
     emitted = [int.from_bytes(report[axis_offset : axis_offset + 1], "big", signed=True) for report in reports]
     assert all(-127 <= part <= 127 for part in emitted)
     assert sum(emitted) == value
@@ -65,8 +65,25 @@ def test_release_all_and_context_shutdown_emit_empty_reports(
         output.release_all()
 
     assert _reports(keyboard_path.read_bytes(), 8)[-2:] == [bytes(8), bytes(8)]
-    assert _reports(mouse_path.read_bytes(), 5)[-2:] == [bytes(5), bytes(5)]
-    assert _reports(consumer_path.read_bytes(), 2)[-2:] == [bytes(2), bytes(2)]
+    assert _reports(mouse_path.read_bytes(), 4)[-2:] == [bytes(4), bytes(4)]
+    assert _reports(consumer_path.read_bytes(), 3)[-2:] == [bytes(3), bytes(3)]
+
+
+def test_large_pan_is_split_on_consumer_hid_and_preserves_pressed_usage(
+    hid_paths: tuple[Path, Path, Path],
+) -> None:
+    _, _, consumer_path = hid_paths
+
+    output = HidOutput(*hid_paths)
+    output.open()
+    output.write_consumer(0x00E9)
+    output.write_mouse(0, 0, 0, 0, 300)
+    output.close(release=False)
+
+    reports = _reports(consumer_path.read_bytes(), 3)
+    assert reports[0] == bytes.fromhex("e90000")
+    assert all(report[:2] == bytes.fromhex("e900") for report in reports[1:])
+    assert sum(int.from_bytes(report[2:3], "big", signed=True) for report in reports[1:]) == 300
 
 
 @pytest.mark.parametrize(

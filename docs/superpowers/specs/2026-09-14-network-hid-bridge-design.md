@@ -70,13 +70,14 @@ The USB composite device contains three interfaces:
 
 The keyboard supports modifiers, navigation keys, the number pad, and F1-F24.
 It uses six-key rollover for non-modifier keys so its boot-keyboard behavior
-remains conventional. The extended mouse supports five buttons, relative X/Y,
-vertical wheel, and horizontal pan. Consumer Control supports volume, mute,
+remains conventional. The mouse uses a Windows-compatible four-byte report for
+five buttons, relative X/Y, and vertical wheel. Horizontal pan is carried as a
+signed relative field on the Consumer Control interface alongside volume, mute,
 play/pause, stop, previous track, and next track.
 
 BIOS/UEFI support is required for the basic keyboard. Firmware pointer support
-is deferred because Linux `f_hid` does not translate the five-byte report into
-the three-byte Boot Mouse report after `SET_PROTOCOL(BOOT)`. Consumer controls,
+is deferred because Linux `f_hid` does not translate the four-byte wheel report
+into the three-byte Boot Mouse report after `SET_PROTOCOL(BOOT)`. Consumer controls,
 F13-F24, all mouse behavior, extra mouse buttons, and horizontal pan are first
 validated against a full target operating system. A later hardware-acceptance
 revision may add a separate Boot Mouse interface.

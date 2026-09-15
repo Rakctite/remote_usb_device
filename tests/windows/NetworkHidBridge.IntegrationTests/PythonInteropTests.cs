@@ -68,11 +68,12 @@ public sealed class PythonInteropTests
             await python.WaitForExitAsync(exitTimeout.Token);
 
             Assert.True(ContainsReport(keyboardPath, keyboard, 8));
-            Assert.True(ContainsReport(mousePath, Convert.FromHexString("010CF901FF"), 5));
-            Assert.True(ContainsReport(consumerPath, Convert.FromHexString("E900"), 2));
+            Assert.True(ContainsReport(mousePath, Convert.FromHexString("010CF901"), 4));
+            Assert.True(ContainsReport(consumerPath, Convert.FromHexString("E90000"), 3));
+            Assert.True(ContainsReportWithFinalByte(consumerPath, 0xFF, 3));
             Assert.True(EndsWith(keyboardPath, new byte[8]));
-            Assert.True(EndsWith(mousePath, new byte[5]));
-            Assert.True(EndsWith(consumerPath, new byte[2]));
+            Assert.True(EndsWith(mousePath, new byte[4]));
+            Assert.True(EndsWith(consumerPath, new byte[3]));
         }
         finally
         {
@@ -126,6 +127,16 @@ public sealed class PythonInteropTests
         for (int offset = 0; offset + reportSize <= data.Length; offset += reportSize)
         {
             if (data.AsSpan(offset, reportSize).SequenceEqual(expected)) return true;
+        }
+        return false;
+    }
+
+    private static bool ContainsReportWithFinalByte(string path, byte expected, int reportSize)
+    {
+        byte[] data = File.ReadAllBytes(path);
+        for (int offset = 0; offset + reportSize <= data.Length; offset += reportSize)
+        {
+            if (data[offset + reportSize - 1] == expected) return true;
         }
         return false;
     }

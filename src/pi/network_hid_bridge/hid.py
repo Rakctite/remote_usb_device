@@ -9,8 +9,8 @@ from typing import BinaryIO, Protocol
 
 
 EMPTY_KEYBOARD_REPORT = bytes(8)
-EMPTY_MOUSE_REPORT = bytes(5)
-EMPTY_CONSUMER_REPORT = bytes(2)
+EMPTY_MOUSE_REPORT = bytes(4)
+EMPTY_CONSUMER_REPORT = bytes(3)
 
 
 class HidOutputError(OSError):
@@ -41,6 +41,7 @@ class HidOutput:
         self._paths = tuple(Path(path) for path in (keyboard_path, mouse_path, consumer_path))
         self._opener = opener
         self._handles: tuple[_Writer, _Writer, _Writer] | None = None
+        self._consumer_usage = 0
         self._lock = RLock()
 
     def __enter__(self) -> HidOutput:
@@ -65,6 +66,7 @@ class HidOutput:
                     handle.close()
                 raise HidOutputError("unable to open all HID device nodes") from error
             self._handles = (opened[0], opened[1], opened[2])
+            self._consumer_usage = 0
 
     def close(self, *, release: bool = True) -> None:
         with self._lock:
@@ -103,9 +105,15 @@ class HidOutput:
             while True:
                 parts = [_clamp_relative(value) for value in values]
                 report = bytes((buttons,)) + b"".join(
-                    part.to_bytes(1, "little", signed=True) for part in parts
+                    part.to_bytes(1, "little", signed=True) for part in parts[:3]
                 )
                 self._write(1, report)
+                if parts[3]:
+                    self._write(
+                        2,
+                        self._consumer_usage.to_bytes(2, "little")
+                        + parts[3].to_bytes(1, "little", signed=True),
+                    )
                 values = [value - part for value, part in zip(values, parts, strict=True)]
                 if not any(values):
                     return
@@ -114,13 +122,15 @@ class HidOutput:
         if not isinstance(usage, int) or not 0 <= usage <= 0xFFFF:
             raise ValueError("consumer usage must fit uint16")
         with self._lock:
-            self._write(2, usage.to_bytes(2, "little"))
+            self._write(2, usage.to_bytes(2, "little") + b"\x00")
+            self._consumer_usage = usage
 
     def release_all(self) -> None:
         with self._lock:
             self._write(0, EMPTY_KEYBOARD_REPORT)
             self._write(1, EMPTY_MOUSE_REPORT)
             self._write(2, EMPTY_CONSUMER_REPORT)
+            self._consumer_usage = 0
 
     def _write(self, index: int, report: bytes) -> None:
         if self._handles is None:

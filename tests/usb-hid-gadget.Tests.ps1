@@ -52,27 +52,28 @@ $keyboardHex = @'
 $mouseHex = @'
 05 01 09 02 A1 01 09 01 A1 00 05 09 19 01 29 05 15 00 25 01 95 05
 75 01 81 02 95 01 75 03 81 01 05 01 09 30 09 31 09 38 15 81 25 7F
-75 08 95 03 81 06 05 0C 0A 38 02 15 81 25 7F 75 08 95 01 81 06 C0 C0
+75 08 95 03 81 06 C0 C0
 '@
 $consumerHex = @'
-05 0C 09 01 A1 01 15 00 26 FF 03 19 00 2A FF 03 75 10 95 01 81 00 C0
+05 0C 09 01 A1 01 15 00 26 FF 03 19 00 2A FF 03 75 10 95 01 81 00
+09 38 15 81 25 7F 75 08 95 01 81 06 C0
 '@
 
 Assert-Descriptor $script 'keyboard' $keyboardHex
 Assert-Descriptor $script 'mouse' $mouseHex
 Assert-Descriptor $script 'consumer' $consumerHex
-Assert-Contains $script "printf '%s' '0x0101' > `"`$GADGET/bcdDevice`"" 'USB device revision must change when the composite descriptor layout changes'
+Assert-Contains $script "printf '%s' '0x0106' > `"`$GADGET/bcdDevice`"" 'USB device revision must change when the composite descriptor layout changes'
 
 foreach ($expected in @(
     "printf '%s' '1' > `"`$GADGET/functions/hid.keyboard/protocol`"",
     "printf '%s' '1' > `"`$GADGET/functions/hid.keyboard/subclass`"",
     "printf '%s' '8' > `"`$GADGET/functions/hid.keyboard/report_length`"",
-    "printf '%s' '0' > `"`$GADGET/functions/hid.mouse/protocol`"",
-    "printf '%s' '0' > `"`$GADGET/functions/hid.mouse/subclass`"",
-    "printf '%s' '5' > `"`$GADGET/functions/hid.mouse/report_length`"",
+    "printf '%s' '2' > `"`$GADGET/functions/hid.mouse/protocol`"",
+    "printf '%s' '1' > `"`$GADGET/functions/hid.mouse/subclass`"",
+    "printf '%s' '4' > `"`$GADGET/functions/hid.mouse/report_length`"",
     "printf '%s' '0' > `"`$GADGET/functions/hid.consumer/protocol`"",
     "printf '%s' '0' > `"`$GADGET/functions/hid.consumer/subclass`"",
-    "printf '%s' '2' > `"`$GADGET/functions/hid.consumer/report_length`""
+    "printf '%s' '3' > `"`$GADGET/functions/hid.consumer/report_length`""
 )) {
     Assert-Contains $script $expected "Missing HID attribute/configuration token: $expected"
 }
