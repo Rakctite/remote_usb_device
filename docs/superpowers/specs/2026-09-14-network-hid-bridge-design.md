@@ -8,9 +8,10 @@ wired LAN, and presents that input to a separate target computer as physical
 USB HID devices through a Raspberry Pi Zero 2 W.
 
 The target computer must see a USB composite device containing distinct
-keyboard, mouse, and consumer-control interfaces. Basic keyboard and mouse
-operation must remain usable in BIOS/UEFI. Extended controls are intended for
-the target operating system.
+keyboard, mouse, and consumer-control interfaces. Basic keyboard operation
+should remain usable in BIOS/UEFI. Mouse firmware compatibility is deferred
+until after the Windows and Raspberry Pi operating-system path is complete.
+Extended controls target the operating system.
 
 ## Hardware
 
@@ -73,9 +74,12 @@ remains conventional. The extended mouse supports five buttons, relative X/Y,
 vertical wheel, and horizontal pan. Consumer Control supports volume, mute,
 play/pause, stop, previous track, and next track.
 
-BIOS/UEFI support is required for the basic keyboard and basic pointer
-functions. Consumer controls, F13-F24, extra mouse buttons, and horizontal pan
-are only guaranteed in a full target operating system.
+BIOS/UEFI support is required for the basic keyboard. Firmware pointer support
+is deferred because Linux `f_hid` does not translate the five-byte report into
+the three-byte Boot Mouse report after `SET_PROTOCOL(BOOT)`. Consumer controls,
+F13-F24, all mouse behavior, extra mouse buttons, and horizontal pan are first
+validated against a full target operating system. A later hardware-acceptance
+revision may add a separate Boot Mouse interface.
 
 The initial development setup currently enumerates keyboard and mouse as
 `/dev/hidg0` and `/dev/hidg1`. Implementation will add Consumer Control as the
@@ -232,7 +236,7 @@ required for development.
 - hotkey transition from Default and every non-default mode
 - cable removal, network loss, client crash, and Pi daemon restart
 - Pi reboot and automatic service recovery
-- manual BIOS/UEFI keyboard and pointer verification
+- manual BIOS/UEFI keyboard verification; pointer verification is deferred
 
 ## Delivery Boundaries
 

@@ -1,4 +1,5 @@
 .worktrees/
+.vs/
 
 # Local build and test output
 artifacts/

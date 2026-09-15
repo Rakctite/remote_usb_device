@@ -286,6 +286,12 @@ git commit -m "feat(pi): expose keyboard mouse and consumer HID interfaces"
 
 ## Task 6: Implement safe Pi HID output
 
+> Execution-order amendment: complete Tasks 8 through 11 first so the Windows
+> application can be debugged against a loopback fake server. Then return to
+> Tasks 6 and 7 for Raspberry Pi output and the production server. BIOS/UEFI
+> pointer compatibility is deferred; the three-interface Gadget remains the
+> operating-system test target.
+
 **Files:**
 
 - Create: `src/pi/network_hid_bridge/hid.py`
@@ -594,7 +600,7 @@ Get-FileHash artifacts/windows-x64/NetworkHidBridge.App.exe -Algorithm SHA256
 
 - [ ] Verify failures: unplug Ethernet, unplug target USB, kill the Windows client, kill the Pi daemon, use a wrong PSK, and reboot the Pi. Confirm local routing returns to Default and target HID state releases within one second wherever the physical USB link remains present.
 
-- [ ] Manually verify basic keyboard and pointer behavior in BIOS/UEFI. Record target motherboard/firmware and any limitations; extended controls are not acceptance requirements there.
+- [ ] Manually verify the basic keyboard in BIOS/UEFI. Record target motherboard/firmware and any limitations. Pointer verification remains a documented follow-up and is not a v1 acceptance requirement.
 
 - [ ] Inspect logs on both systems and confirm they contain lifecycle/error data but no input content or secret material.
 
