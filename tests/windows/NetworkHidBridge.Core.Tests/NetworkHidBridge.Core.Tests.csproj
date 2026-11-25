@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\windows\NetworkHidBridge.Core\NetworkHidBridge.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\windows\NetworkHidBridge.WindowsSettings\NetworkHidBridge.WindowsSettings.csproj" />
   </ItemGroup>
 
 </Project>

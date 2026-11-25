@@ -57,3 +57,30 @@ dotnet build NetworkHidBridge.sln
 dotnet test NetworkHidBridge.sln
 python -m pytest tests/pi -q
 ```
+
+## Linux amd64 sender
+
+The Linux sender shares the original TCP protocol and Raspberry Pi receiver with
+the Windows app. Build the Linux project independently of the Windows solution:
+
+```sh
+dotnet publish src/linux/NetworkHidBridge.Linux -c Release -r linux-x64 --self-contained true
+```
+
+Run the published NetworkHidBridge.Linux executable from an active graphical
+logind session. On Ubuntu 24.04, the sender needs libevdev2 and Avalonia X11 dependencies (including libice6, libsm6, and libfontconfig1). Install libsecret-tools for desktop keyring support.
+The desktop keyring is optional if you enter the pre-shared key each session.
+Select the keyboard and relative mouse event devices listed by their stable udev
+paths. The current user needs read access to those device nodes via the desktop
+session or a local udev ACL scoped to the intended devices.
+
+Enter the Pi IP, port and Base64 PSK from the Pi setup, then select Connect.
+Wait for Connected before selecting a routing mode. Numpad subtract and multiply
+toggle remote routing after keys and buttons are released. In Default mode,
+the local app can receive those two keys. Closing the window exits the sender.
+After unplugging a selected device, reconnect it and reopen the sender if the
+device list needs to be refreshed.
+
+This version selects one event node for each role. If a keyboard exposes media
+keys on a separate event node, those keys are available only when they are
+reported through the selected keyboard node.

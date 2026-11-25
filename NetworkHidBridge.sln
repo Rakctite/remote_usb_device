@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkHidBridge.Core.Tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkHidBridge.IntegrationTests", "tests\windows\NetworkHidBridge.IntegrationTests\NetworkHidBridge.IntegrationTests.csproj", "{8F5F91EE-7DD9-445F-93FE-3CDCB35E2B6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkHidBridge.WindowsSettings", "src\windows\NetworkHidBridge.WindowsSettings\NetworkHidBridge.WindowsSettings.csproj", "{AEBF792A-E8A8-457D-8151-F22987F50670}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkHidBridge.Linux", "src\linux\NetworkHidBridge.Linux\NetworkHidBridge.Linux.csproj", "{C986895A-8EBF-4022-8489-3CEA2F5E8468}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +77,30 @@ Global
 		{8F5F91EE-7DD9-445F-93FE-3CDCB35E2B6B}.Release|x64.Build.0 = Release|Any CPU
 		{8F5F91EE-7DD9-445F-93FE-3CDCB35E2B6B}.Release|x86.ActiveCfg = Release|Any CPU
 		{8F5F91EE-7DD9-445F-93FE-3CDCB35E2B6B}.Release|x86.Build.0 = Release|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Debug|x64.Build.0 = Debug|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Debug|x86.Build.0 = Debug|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Release|x64.ActiveCfg = Release|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Release|x64.Build.0 = Release|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Release|x86.ActiveCfg = Release|Any CPU
+		{AEBF792A-E8A8-457D-8151-F22987F50670}.Release|x86.Build.0 = Release|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Debug|x64.Build.0 = Debug|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Debug|x86.Build.0 = Debug|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Release|x64.ActiveCfg = Release|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Release|x64.Build.0 = Release|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Release|x86.ActiveCfg = Release|Any CPU
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -83,5 +111,7 @@ Global
 		{4E68C6DC-5565-4047-A449-66338B1D1A3A} = {A5FE5550-1A7D-4379-3120-B0EB52354176}
 		{FBBDFCC7-3A2F-4E94-9FB3-5FFFECF158B9} = {A5FE5550-1A7D-4379-3120-B0EB52354176}
 		{8F5F91EE-7DD9-445F-93FE-3CDCB35E2B6B} = {A5FE5550-1A7D-4379-3120-B0EB52354176}
+		{AEBF792A-E8A8-457D-8151-F22987F50670} = {A5FE5550-1A7D-4379-3120-B0EB52354176}
+		{C986895A-8EBF-4022-8489-3CEA2F5E8468} = {A5FE5550-1A7D-4379-3120-B0EB52354176}
 	EndGlobalSection
 EndGlobal
